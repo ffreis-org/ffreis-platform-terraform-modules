@@ -120,9 +120,9 @@ resource "aws_lambda_permission" "apigw" {
   action        = "lambda:InvokeFunction"
   # Extract Lambda ARN from integration_uri format:
   # arn:aws:apigateway:region:lambda:path/2015-03-31/functions/LAMBDA_ARN/invocations
-  function_name = replace(
-    replace(each.value.integration_uri, "/^.*\\/functions\\//", ""),
-    "/\\/invocations$/",
+  function_name = regexreplace(
+    regexreplace(each.value.integration_uri, "^.*/functions/", ""),
+    "/invocations$",
     ""
   )
   principal  = "apigateway.amazonaws.com"

@@ -1,4 +1,4 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>FelipeFuhr/ffreis-platform-standards:renovate/terraform"]
+  "extends": ["github>FelipeFuhr/ffreis-platform-standards:renovate/terraform#691e203d803e53d1fb678ed03fff2405876cbaee"]
 }

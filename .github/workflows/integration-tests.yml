@@ -55,11 +55,7 @@ jobs:
         run: cd test && go mod download
 
       # ── Terraform setup ─────────────────────────────────────────────────────
-<<<<<<< HEAD
       - uses: hashicorp/setup-terraform@5e8dbf3c6d9deaf4193ca7a8fb23f2ac83bb6c85 # v4.0.0
-=======
-      - uses: hashicorp/setup-terraform@v4
->>>>>>> origin/main
         with:
           terraform_version: ${{ env.TF_VERSION }}
           # Disable the wrapper so terraform.Output() returns clean strings.
