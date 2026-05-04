@@ -110,7 +110,7 @@ jobs:
             --exit-code 0
 
       - name: Upload Trivy SARIF
-        uses: github/codeql-action/upload-sarif@d4b3ca9fa7f69d38bfcd667bdc45bc373d16277e
+        uses: github/codeql-action/upload-sarif@c10b8064de6f491fea524254123dbe5e09572f13
         with:
           sarif_file: trivy.sarif
 
@@ -144,13 +144,17 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
       - name: Setup Go
-        uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
         with:
           go-version: "1.25.8"
           cache-dependency-path: test/go.sum
 
       - name: Setup Terraform
+<<<<<<< HEAD
         uses: hashicorp/setup-terraform@5e8dbf3c6d9deaf4193ca7a8fb23f2ac83bb6c85 # v4.0.0
+=======
+        uses: hashicorp/setup-terraform@v4
+>>>>>>> origin/main
         with:
           terraform_version: "1.9.8"
           terraform_wrapper: false
