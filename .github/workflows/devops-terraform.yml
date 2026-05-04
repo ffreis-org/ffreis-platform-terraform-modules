@@ -122,7 +122,6 @@ jobs:
     needs: [fmt]
     with:
       scan-path: "."
-      minimum-severity: "HIGH"
       soft-fail: false
 
   checkov:

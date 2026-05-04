@@ -42,12 +42,13 @@ variable "cloudfront_access_logs_prefix" {
 }
 
 variable "waf_web_acl_id" {
-  description = "WAF Web ACL ID or ARN associated with the CloudFront distribution."
+  description = "Optional WAF Web ACL ID or ARN associated with the CloudFront distribution. Null disables WAF association."
   type        = string
+  default     = null
 
   validation {
-    condition     = trimspace(var.waf_web_acl_id) != ""
-    error_message = "waf_web_acl_id must be a non-empty Web ACL identifier."
+    condition     = var.waf_web_acl_id == null || try(trimspace(var.waf_web_acl_id), "") != ""
+    error_message = "waf_web_acl_id must be null or a non-empty Web ACL identifier."
   }
 }
 
@@ -112,6 +113,17 @@ variable "error_page" {
   description = "Path to the 500 error page (must exist in the S3 bucket)."
   type        = string
   default     = "/500.html"
+}
+
+variable "error_caching_min_ttl" {
+  description = "Minimum TTL in seconds for caching error responses. Set to 0 during debugging to see errors immediately. Higher values (e.g., 300) reduce origin load in production."
+  type        = number
+  default     = 10
+
+  validation {
+    condition     = var.error_caching_min_ttl >= 0 && var.error_caching_min_ttl <= 31536000
+    error_message = "error_caching_min_ttl must be between 0 and 31536000 (1 year)."
+  }
 }
 
 variable "tags" {
