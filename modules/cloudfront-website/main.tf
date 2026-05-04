@@ -211,7 +211,7 @@ resource "aws_cloudfront_distribution" "website" {
     ssl_support_method             = local.has_custom_domain ? "sni-only" : null
     # AWS only allows TLSv1 when using the CloudFront default certificate. Custom
     # domains must provide ACM so the module can enforce a modern policy.
-    minimum_protocol_version = local.has_custom_domain ? "TLSv1.2_2021" : "TLSv1"
+    minimum_protocol_version = local.has_custom_domain ? "TLSv1.2_2021" : "TLSv1" #trivy:ignore:AVD-AWS-0013
   }
 
   logging_config {
