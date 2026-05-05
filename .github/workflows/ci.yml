@@ -41,14 +41,14 @@ jobs:
 
   # ── 2. Terraform fmt ────────────────────────────────────────────────────────
   fmt:
-    uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-fmt.yml@e0cd54322d52fe7c522dd0bc2c46d56df2ceae43
+    uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-fmt.yml@1b59a920b1b4b226f3e5a91eb9042827b9c435cb
     with:
       working-directory: "."
 
   # ── 3. Validate ─────────────────────────────────────────────────────────────
   validate:
     needs: [fmt]
-    uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-validate.yml@e0cd54322d52fe7c522dd0bc2c46d56df2ceae43
+    uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-validate.yml@1b59a920b1b4b226f3e5a91eb9042827b9c435cb
     with:
       validate-all-modules: true
       modules-dir: "modules"
@@ -56,7 +56,7 @@ jobs:
   # ── 4. Lint ─────────────────────────────────────────────────────────────────
   lint:
     needs: [fmt]
-    uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-lint.yml@e0cd54322d52fe7c522dd0bc2c46d56df2ceae43
+    uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-lint.yml@1b59a920b1b4b226f3e5a91eb9042827b9c435cb
 
   # ── 5. Security (Trivy FINAL FIX - stable) ──────────────────────────────────
   security:
@@ -124,12 +124,12 @@ jobs:
   # ── 6. Security (tfsec) ─────────────────────────────────────────────────────
   tfsec:
     needs: [fmt]
-    uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-tfsec.yml@e0cd54322d52fe7c522dd0bc2c46d56df2ceae43
+    uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-tfsec.yml@1b59a920b1b4b226f3e5a91eb9042827b9c435cb
 
   # ── 7. Test module hygiene ──────────────────────────────────────────────────
   test-tidy:
     needs: [fmt]
-    uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-test-tidy.yml@e0cd54322d52fe7c522dd0bc2c46d56df2ceae43
+    uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-test-tidy.yml@1b59a920b1b4b226f3e5a91eb9042827b9c435cb
     with:
       go-version: "1.25.8"
 

@@ -155,6 +155,14 @@ resource "aws_cloudfront_distribution" "website" {
     cache_policy_id            = local.cache_policy_optimized
     response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security_headers.id
     compress                   = true
+
+    dynamic "function_association" {
+      for_each = var.cloudfront_function_arn != null ? [1] : []
+      content {
+        event_type   = "viewer-response"
+        function_arn = var.cloudfront_function_arn
+      }
+    }
   }
 
   # API path behaviours — forward POST/etc to API Gateway without caching
