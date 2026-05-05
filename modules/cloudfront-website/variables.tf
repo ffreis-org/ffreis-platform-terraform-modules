@@ -126,6 +126,16 @@ variable "error_caching_min_ttl" {
   }
 }
 
+variable "cloudfront_function_arn" {
+  description = "ARN of a CloudFront Function to attach to the default cache behaviour as a viewer-response event. Set to null to skip."
+  type        = string
+  default     = null
+  validation {
+    condition     = var.cloudfront_function_arn == null || try(trimspace(var.cloudfront_function_arn), "") != ""
+    error_message = "cloudfront_function_arn must be null or a non-empty CloudFront Function ARN."
+  }
+}
+
 variable "tags" {
   description = "Tags applied to all resources."
   type        = map(string)
