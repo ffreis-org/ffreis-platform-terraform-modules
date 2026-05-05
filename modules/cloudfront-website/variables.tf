@@ -118,7 +118,7 @@ variable "error_page" {
 variable "error_caching_min_ttl" {
   description = "Minimum TTL in seconds for caching error responses. Set to 0 during debugging to see errors immediately. Higher values (e.g., 300) reduce origin load in production."
   type        = number
-  default     = 0
+  default     = 10
 
   validation {
     condition     = var.error_caching_min_ttl >= 0 && var.error_caching_min_ttl <= 31536000
