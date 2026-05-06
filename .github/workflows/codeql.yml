@@ -24,7 +24,7 @@ jobs:
     # Run CodeQL by default; allow opting out with a repo variable:
     #   CODEQL_ENABLED=false
     if: vars.CODEQL_ENABLED != 'false'
-    uses: FelipeFuhr/ffreis-workflows-general/.github/workflows/general-codeql.yml@c3e3e0a44d4b79697f1babaa9bf287d1b264da52
+    uses: FelipeFuhr/ffreis-workflows-general/.github/workflows/general-codeql.yml@01e2b12e992621fecf074b8a202f66044196f3bf
     with:
       # This repository is primarily Terraform modules; CodeQL supports scanning
       # GitHub Actions workflows as `language: actions`.
