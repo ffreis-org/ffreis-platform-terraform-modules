@@ -136,6 +136,16 @@ variable "cloudfront_function_arn" {
   }
 }
 
+variable "viewer_request_function_arn" {
+  description = "ARN of a CloudFront Function to attach to the default cache behaviour as a viewer-request event (runs before the request reaches the origin). Use for URL rewriting. Set to null to skip."
+  type        = string
+  default     = null
+  validation {
+    condition     = var.viewer_request_function_arn == null || try(trimspace(var.viewer_request_function_arn), "") != ""
+    error_message = "viewer_request_function_arn must be null or a non-empty CloudFront Function ARN."
+  }
+}
+
 variable "tags" {
   description = "Tags applied to all resources."
   type        = map(string)

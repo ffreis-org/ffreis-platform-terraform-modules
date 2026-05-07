@@ -157,6 +157,14 @@ resource "aws_cloudfront_distribution" "website" {
     compress                   = true
 
     dynamic "function_association" {
+      for_each = var.viewer_request_function_arn != null ? [1] : []
+      content {
+        event_type   = "viewer-request"
+        function_arn = var.viewer_request_function_arn
+      }
+    }
+
+    dynamic "function_association" {
       for_each = var.cloudfront_function_arn != null ? [1] : []
       content {
         event_type   = "viewer-response"
