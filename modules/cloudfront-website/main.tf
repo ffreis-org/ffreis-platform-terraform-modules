@@ -164,8 +164,7 @@ resource "aws_cloudfront_distribution" "website" {
       }
     }
 
-    dynamic "function_association" {
-      for_each = var.cloudfront_function_arn != null ? [1] : []
+    dynamic "function_association" {      for_each = var.cloudfront_function_arn != null ? [1] : []
       content {
         event_type   = "viewer-response"
         function_arn = var.cloudfront_function_arn
