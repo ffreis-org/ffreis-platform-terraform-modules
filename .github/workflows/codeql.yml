@@ -1,11 +1,8 @@
 name: Code Scanning (CodeQL)
 
 on:
-  pull_request:
   merge_group:
     types: [checks_requested]
-    branches: [main, master]
-  push:
     branches: [main, master]
   schedule:
     - cron: "0 3 * * 0" # Sundays 03:00 UTC
