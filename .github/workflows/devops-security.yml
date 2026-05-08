@@ -19,7 +19,6 @@ permissions:
 
 jobs:
   gitleaks:
-    timeout-minutes: 30
     permissions:
       contents: read
       actions: read
@@ -32,7 +31,6 @@ jobs:
 
   # TODO: update SHA to the ffreis-workflows-terraform commit that added SARIF support to tf-security.yml
   trivy-config:
-    timeout-minutes: 30
     permissions:
       contents: read
       security-events: write
@@ -42,7 +40,6 @@ jobs:
       upload-sarif: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false }}
 
   grype-fs:
-    timeout-minutes: 30
     permissions:
       contents: read
       actions: read
@@ -53,7 +50,6 @@ jobs:
       upload-sarif: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false }}
 
   osv:
-    timeout-minutes: 30
     permissions:
       contents: read
       actions: read

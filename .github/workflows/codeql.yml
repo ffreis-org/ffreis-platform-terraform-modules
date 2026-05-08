@@ -21,7 +21,6 @@ concurrency:
 
 jobs:
   codeql:
-    timeout-minutes: 30
     # Run CodeQL by default; allow opting out with a repo variable:
     #   CODEQL_ENABLED=false
     if: vars.CODEQL_ENABLED != 'false'
