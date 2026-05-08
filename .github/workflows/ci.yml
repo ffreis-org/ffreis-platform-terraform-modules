@@ -19,6 +19,7 @@ jobs:
 
   # ── 1. Secret scan ─────────────────────────────────────────────────────────
   secret-scan:
+    timeout-minutes: 30
     name: Secret Scan
     permissions:
       contents: read
@@ -41,12 +42,14 @@ jobs:
 
   # ── 2. Terraform fmt ────────────────────────────────────────────────────────
   fmt:
+    timeout-minutes: 15
     uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-fmt.yml@1b59a920b1b4b226f3e5a91eb9042827b9c435cb
     with:
       working-directory: "."
 
   # ── 3. Validate ─────────────────────────────────────────────────────────────
   validate:
+    timeout-minutes: 15
     needs: [fmt]
     uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-validate.yml@1b59a920b1b4b226f3e5a91eb9042827b9c435cb
     with:
@@ -55,11 +58,13 @@ jobs:
 
   # ── 4. Lint ─────────────────────────────────────────────────────────────────
   lint:
+    timeout-minutes: 15
     needs: [fmt]
     uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-lint.yml@1b59a920b1b4b226f3e5a91eb9042827b9c435cb
 
   # ── 5. Security (Trivy FINAL FIX - stable) ──────────────────────────────────
   security:
+    timeout-minutes: 30
     needs: [fmt]
     name: Security (Trivy)
     runs-on: ubuntu-latest
@@ -123,11 +128,14 @@ jobs:
 
   # ── 6. Security (tfsec) ─────────────────────────────────────────────────────
   tfsec:
+    timeout-minutes: 15
     needs: [fmt]
     uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-tfsec.yml@1b59a920b1b4b226f3e5a91eb9042827b9c435cb
 
   # ── 7. Test module hygiene ──────────────────────────────────────────────────
   test-tidy:
+    timeout-minutes: 30
+    if: ${{ !github.event.pull_request.draft }}
     needs: [fmt]
     uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-test-tidy.yml@1b59a920b1b4b226f3e5a91eb9042827b9c435cb
     with:
@@ -135,6 +143,8 @@ jobs:
 
   # ── 8. Terratest ────────────────────────────────────────────────────────────
   terratest:
+    timeout-minutes: 30
+    if: ${{ !github.event.pull_request.draft }}
     needs: [fmt]
     name: Terratest
     runs-on: ubuntu-latest

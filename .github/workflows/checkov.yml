@@ -17,6 +17,7 @@ permissions:
 
 jobs:
   checkov:
+    timeout-minutes: 15
     uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-checkov.yml@1b59a920b1b4b226f3e5a91eb9042827b9c435cb
     with:
       scan-directory: "."
