@@ -144,7 +144,9 @@ variable "viewer_request_function_arn" {
     condition     = var.viewer_request_function_arn == null || try(trimspace(var.viewer_request_function_arn), "") != ""
     error_message = "viewer_request_function_arn must be null or a non-empty CloudFront Function ARN."
   }
-}variable "tags" {
+}
+
+variable "tags" {
   description = "Tags applied to all resources."
   type        = map(string)
   default     = {}
