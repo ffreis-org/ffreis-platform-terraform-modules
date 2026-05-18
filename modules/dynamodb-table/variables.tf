@@ -88,6 +88,12 @@ variable "stream_view_type" {
   default     = "NEW_AND_OLD_IMAGES"
 }
 
+variable "deletion_protection_enabled" {
+  description = "Enable deletion protection to prevent accidental table deletion. Set true for production."
+  type        = bool
+  default     = false
+}
+
 variable "tags" {
   description = "Tags applied to the table."
   type        = map(string)
