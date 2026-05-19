@@ -177,3 +177,15 @@ resource "aws_s3_bucket_logging" "this" {
   target_bucket = var.logging_target_bucket
   target_prefix = var.logging_target_prefix != "" ? var.logging_target_prefix : "${var.bucket}/"
 }
+
+# ---------------------------------------------------------------------------
+# Destroy guard — only present when prevent_destroy = true.
+# terraform destroy fails while this resource exists because it has
+# lifecycle.prevent_destroy = true.
+# ---------------------------------------------------------------------------
+resource "terraform_data" "destroy_guard" {
+  count = var.prevent_destroy ? 1 : 0
+  lifecycle {
+    prevent_destroy = true
+  }
+}
