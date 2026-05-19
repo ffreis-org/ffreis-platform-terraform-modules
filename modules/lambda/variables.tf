@@ -178,3 +178,9 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "prevent_destroy" {
+  description = "Set true in production to block accidental resource destruction. Uses a terraform_data guard — to destroy the module, set this to false and apply first."
+  type        = bool
+  default     = false
+}

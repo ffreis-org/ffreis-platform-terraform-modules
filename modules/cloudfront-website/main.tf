@@ -285,3 +285,15 @@ data "aws_iam_policy_document" "website_bucket" {
     }
   }
 }
+
+# ---------------------------------------------------------------------------
+# Destroy guard — only present when prevent_destroy = true.
+# terraform destroy fails while this resource exists because it has
+# lifecycle.prevent_destroy = true.
+# ---------------------------------------------------------------------------
+resource "terraform_data" "destroy_guard" {
+  count = var.prevent_destroy ? 1 : 0
+  lifecycle {
+    prevent_destroy = true
+  }
+}
