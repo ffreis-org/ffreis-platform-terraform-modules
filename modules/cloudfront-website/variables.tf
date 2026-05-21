@@ -157,3 +157,14 @@ variable "prevent_destroy" {
   type        = bool
   default     = false
 }
+
+variable "cache_policy_id" {
+  description = "CloudFront managed cache policy ID for the default cache behaviour. Use CachingOptimized (658327ea) in prod and CachingDisabled (4135ea2d) in dev to avoid invalidation costs and ensure fresh responses during development."
+  type        = string
+  default     = "658327ea-f89d-4fab-a63d-7e88639e58f6" # CachingOptimized
+
+  validation {
+    condition     = trimspace(var.cache_policy_id) != ""
+    error_message = "cache_policy_id must be a non-empty managed policy UUID."
+  }
+}

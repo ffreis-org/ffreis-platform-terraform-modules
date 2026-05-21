@@ -152,7 +152,7 @@ resource "aws_cloudfront_distribution" "website" {
     viewer_protocol_policy     = "redirect-to-https"
     allowed_methods            = ["GET", "HEAD", "OPTIONS"]
     cached_methods             = ["GET", "HEAD"]
-    cache_policy_id            = local.cache_policy_optimized
+    cache_policy_id            = var.cache_policy_id
     response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security_headers.id
     compress                   = true
 
