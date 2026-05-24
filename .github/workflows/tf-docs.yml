@@ -15,11 +15,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-permissions:
-  contents: read
-
 jobs:
   docs:
+    permissions:
+      contents: read
     uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-docs.yml@main
     with:
       working-directory: "modules"

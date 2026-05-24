@@ -8,9 +8,6 @@ on:
     types: [checks_requested]
     branches: [main]
 
-permissions:
-  contents: read
-
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -42,6 +39,8 @@ jobs:
 
   # ── 2. Terraform fmt ────────────────────────────────────────────────────────
   fmt:
+    permissions:
+      contents: read
     uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-fmt.yml@1b59a920b1b4b226f3e5a91eb9042827b9c435cb
     with:
       working-directory: "."
@@ -49,6 +48,8 @@ jobs:
   # ── 3. Validate ─────────────────────────────────────────────────────────────
   validate:
     needs: [fmt]
+    permissions:
+      contents: read
     uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-validate.yml@1b59a920b1b4b226f3e5a91eb9042827b9c435cb
     with:
       validate-all-modules: true
@@ -57,6 +58,8 @@ jobs:
   # ── 4. Lint ─────────────────────────────────────────────────────────────────
   lint:
     needs: [fmt]
+    permissions:
+      contents: read
     uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-lint.yml@1b59a920b1b4b226f3e5a91eb9042827b9c435cb
 
   # ── 5. Security (Trivy FINAL FIX - stable) ──────────────────────────────────
@@ -126,12 +129,18 @@ jobs:
   # ── 6. Security (tfsec) ─────────────────────────────────────────────────────
   tfsec:
     needs: [fmt]
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
     uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-tfsec.yml@1b59a920b1b4b226f3e5a91eb9042827b9c435cb
 
   # ── 7. Test module hygiene ──────────────────────────────────────────────────
   test-tidy:
     if: ${{ !github.event.pull_request.draft }}
     needs: [fmt]
+    permissions:
+      contents: read
     uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-test-tidy.yml@1b59a920b1b4b226f3e5a91eb9042827b9c435cb
     with:
       go-version: "1.25.8"
@@ -142,6 +151,8 @@ jobs:
     if: ${{ !github.event.pull_request.draft }}
     needs: [fmt]
     name: Terratest
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
 
     steps:
