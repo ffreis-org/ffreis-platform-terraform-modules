@@ -126,6 +126,14 @@ resource "aws_cloudfront_distribution" "website" {
     domain_name              = aws_s3_bucket.website.bucket_regional_domain_name
     origin_id                = "S3-${var.bucket_name}"
     origin_access_control_id = aws_cloudfront_origin_access_control.website.id
+
+    # Pin response_completion_timeout to its AWS default (0). When unset, the
+    # AWS provider can't predict the value at plan time and shows it as "known
+    # after apply" each plan — which cascades into apparent origin block
+    # reordering and downstream S3 bucket policy re-rendering (the policy
+    # depends on this CF distribution's ARN). Explicit value → stable plan.
+    response_completion_timeout = 0
+
     s3_origin_config {
       origin_access_identity = ""
     }
@@ -135,8 +143,10 @@ resource "aws_cloudfront_distribution" "website" {
   dynamic "origin" {
     for_each = local.has_api ? [1] : []
     content {
-      domain_name = local.api_domain
-      origin_id   = "APIGW"
+      domain_name                 = local.api_domain
+      origin_id                   = "APIGW"
+      response_completion_timeout = 0 # same reason as S3 origin above
+
       custom_origin_config {
         http_port              = 80
         https_port             = 443
