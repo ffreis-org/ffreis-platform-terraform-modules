@@ -14,20 +14,21 @@ on:
       - "**/*.tf"
       - ".github/workflows/**"
 
-permissions:
-  contents: read
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   fmt:
+    permissions:
+      contents: read
     uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-fmt.yml@e0cd54322d52fe7c522dd0bc2c46d56df2ceae43
     with:
       working-directory: "."
 
   validate:
+    permissions:
+      contents: read
     uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-validate.yml@e0cd54322d52fe7c522dd0bc2c46d56df2ceae43
     needs: [fmt]
     with:
@@ -120,6 +121,10 @@ jobs:
           sarif_file: trivy.sarif
 
   tfsec:
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
     uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-tfsec.yml@e0cd54322d52fe7c522dd0bc2c46d56df2ceae43
     needs: [fmt]
     with:
@@ -127,6 +132,10 @@ jobs:
       soft-fail: false
 
   checkov:
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
     uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-checkov.yml@e0cd54322d52fe7c522dd0bc2c46d56df2ceae43
     needs: [fmt]
     with:
@@ -135,6 +144,10 @@ jobs:
       soft-fail: false
 
   semgrep:
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
     uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-semgrep.yml@e0cd54322d52fe7c522dd0bc2c46d56df2ceae43
     needs: [fmt]
     with:

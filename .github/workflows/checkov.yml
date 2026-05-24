@@ -12,11 +12,12 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-permissions:
-  contents: read
-
 jobs:
   checkov:
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
     uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-checkov.yml@1b59a920b1b4b226f3e5a91eb9042827b9c435cb
     with:
       scan-directory: "."
