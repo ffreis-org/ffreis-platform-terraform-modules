@@ -134,8 +134,11 @@ resource "aws_cloudfront_distribution" "website" {
     # depends on this CF distribution's ARN). Explicit value → stable plan.
     response_completion_timeout = 0
 
+    # OAC is used (origin_access_control_id above) instead of legacy OAI.
+    # AWS returns origin_access_identity as null in state when OAC is set,
+    # so use null (not "") here to avoid perpetual block-recreation drift.
     s3_origin_config {
-      origin_access_identity = ""
+      origin_access_identity = null
     }
   }
 
