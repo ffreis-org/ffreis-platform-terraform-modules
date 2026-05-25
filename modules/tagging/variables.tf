@@ -1,27 +1,53 @@
-# ---------------------------------------------------------------------------
-# Required cost-allocation and ownership tags.
-# Pass the output of this module as `tags` to every other module.
-# All tags are validated so nothing accidentally slips through unset.
-# ---------------------------------------------------------------------------
-
-variable "workspace" {
-  description = "Terraform workspace / environment this resource belongs to (e.g. 'management', 'ml', 'db', 'prod', 'staging')."
+variable "project" {
+  description = "Product / project slug. Drives Cost Explorer per-product grouping. Examples: 'flemming', 'petlook', 'ffreis-website', 'platform-shared-infra'."
   type        = string
 }
 
-variable "service" {
-  description = "Service or application name (e.g. 'myapp-api', 'data-pipeline', 'sagemaker-studio')."
+variable "environment" {
+  description = "Deployment environment: 'dev' or 'prod'."
+  type        = string
+
+  validation {
+    condition     = contains(["dev", "prod"], var.environment)
+    error_message = "environment must be 'dev' or 'prod'."
+  }
+}
+
+variable "stack" {
+  description = "Logical stack this resource belongs to (typically matches the project, but may group multiple projects)."
   type        = string
 }
 
-variable "team" {
-  description = "Owning team (e.g. 'platform', 'ml', 'backend', 'data'). Used to split billing by team."
+variable "layer" {
+  description = "Sub-component inside the stack (e.g. 'flemming-infra', 'email-forwarder', 'website')."
   type        = string
+}
+
+variable "terraform_repo" {
+  description = "Name of the Terraform repo that owns this resource (e.g. 'ffreis-flemming-infra')."
+  type        = string
+}
+
+variable "terraform_root" {
+  description = "Path inside the Terraform repo where root module lives (e.g. 'infra', 'stack')."
+  type        = string
+}
+
+variable "terraform_version" {
+  description = "Terraform CLI version pinned by the caller (e.g. '1.9.8')."
+  type        = string
+  default     = ""
 }
 
 variable "cost_center" {
-  description = "Cost center code for billing allocation."
+  description = "Per-product cost center for Cost Explorer grouping. Examples: 'flemming', 'petlook', 'ffreis-com', 'ffreis-website', 'platform', 'dashboard', 'ai-ask'. Do NOT use a single shared value (e.g. 'engineering') — it defeats the point of per-product budget visibility."
   type        = string
+}
+
+variable "owner" {
+  description = "Owning team or individual (e.g. 'felipefuhr')."
+  type        = string
+  default     = "felipefuhr"
 }
 
 variable "managed_by" {
@@ -31,9 +57,15 @@ variable "managed_by" {
 }
 
 variable "repository" {
-  description = "Source repository URL or name (e.g. 'github.com/ffreis/platform-bootstrap')."
+  description = "Source repository URL (e.g. 'github.com/FelipeFuhr/ffreis-flemming-infra')."
   type        = string
   default     = ""
+}
+
+variable "compliance_framework" {
+  description = "Compliance regime this resource is in scope for: 'none', 'lgpd', 'pci', 'hipaa', etc."
+  type        = string
+  default     = "none"
 }
 
 variable "data_classification" {
@@ -47,8 +79,46 @@ variable "data_classification" {
   }
 }
 
+variable "backup_policy" {
+  description = "Backup policy: 'none', 'daily', 'weekly', 'pitr' (DDB point-in-time recovery), etc."
+  type        = string
+  default     = "none"
+}
+
+variable "lifecycle_state" {
+  description = "Resource lifecycle: 'production' (serving real users), 'development' (dev/staging), 'experiment' (short-lived spike), or 'legacy' (slated for deletion). Drives cleanup audits."
+  type        = string
+
+  validation {
+    condition     = contains(["production", "development", "experiment", "legacy"], var.lifecycle_state)
+    error_message = "lifecycle_state must be production, development, experiment, or legacy."
+  }
+}
+
+variable "fixed_cost_tier" {
+  description = "Fixed monthly cost band: 'none' (pay-per-request only), 'low' (<$1/mo), 'medium' ($1-$10/mo), or 'high' (>$10/mo). Tag honestly — Cost Explorer queries depend on it."
+  type        = string
+  default     = "none"
+
+  validation {
+    condition     = contains(["none", "low", "medium", "high"], var.fixed_cost_tier)
+    error_message = "fixed_cost_tier must be none, low, medium, or high."
+  }
+}
+
+variable "domain" {
+  description = "Public-facing domain this resource serves. Cross-cuts Project (a shared stack may serve multiple domains)."
+  type        = string
+  default     = "internal"
+
+  validation {
+    condition     = contains(["flemming.com.br", "ffreis.com", "petlook.ai", "internal"], var.domain)
+    error_message = "domain must be flemming.com.br, ffreis.com, petlook.ai, or internal."
+  }
+}
+
 variable "additional_tags" {
-  description = "Additional tags to merge in (caller-specific, not required by the baseline)."
+  description = "Caller-specific tags to merge on top. Use sparingly — prefer adding a first-class variable here if the tag is reused."
   type        = map(string)
   default     = {}
 }
