@@ -12,7 +12,7 @@ locals {
     Compliance         = var.compliance_framework
     DataClassification = var.data_classification
     BackupPolicy       = var.backup_policy
-    Lifecycle          = var.lifecycle_state
+    LifecycleState     = var.lifecycle_state
     FixedCostTier      = var.fixed_cost_tier
     Domain             = var.domain
   }

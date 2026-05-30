@@ -43,8 +43,8 @@ Per-resource override (rare — usually `default_tags` is enough):
 resource "aws_dynamodb_table" "experiments" {
   # …
   tags = merge(module.tags.tags, {
-    Lifecycle     = "experiment"
-    FixedCostTier = "none"
+    LifecycleState = "experiment"
+    FixedCostTier  = "none"
   })
 }
 ```
@@ -65,15 +65,15 @@ resource "aws_dynamodb_table" "experiments" {
 | `Compliance` | ✅ | Defaults to `none` |
 | `DataClassification` | ✅ | Defaults to `internal`, validated |
 | `BackupPolicy` | ✅ | Defaults to `none` |
-| `Lifecycle` | ✅ | `production` \| `development` \| `experiment` \| `legacy` (validated) |
+| `LifecycleState` | ✅ | `production` \| `development` \| `experiment` \| `legacy` (validated) |
 | `FixedCostTier` | ✅ | `none` \| `low` (<$1/mo) \| `medium` ($1-$10/mo) \| `high` (>$10/mo) (validated) |
-| `Domain` | ✅ | `flemming.com.br` \| `ffreis.com` \| `petlook.ai` \| `internal` (validated) |
+| `Domain` | ✅ | `flemming.com.br` \| `ffreis.com` \| `petlook.ai` \| `petlook.app` \| `dashboard.ffreis.com` \| `uxstoryteller.ffreis.com` \| `internal` (validated) |
 | `TerraformVersion` | conditional | Emitted only if `terraform_version` is set |
 | `Repository` | conditional | Emitted only if `repository` is set |
 
 ## Decision rules
 
-### `Lifecycle`
+### `LifecycleState`
 - `production` — serves real users; deletion would cause an incident.
 - `development` — dev / staging twin of a production resource; recreatable.
 - `experiment` — short-lived spike, PoC, or one-off; safe to delete after the experiment ends.
@@ -87,7 +87,7 @@ Set honestly. Cost Explorer queries like *"show me all medium+ fixed-cost resour
 - `high` — > $10/mo (NAT gateway $32, RDS instance, ElastiCache, idle Lambda provisioned concurrency, …).
 
 ### `Domain`
-Use `internal` for resources not tied to a public domain (TF state buckets, GitHub OIDC providers, internal scheduling). Otherwise pick the public hostname the resource ultimately serves.
+Use `internal` for resources not tied to a public domain (TF state buckets, GitHub OIDC providers, internal scheduling). Otherwise pick the most specific hostname the resource ultimately serves — subdomains are first-class (e.g. `dashboard.ffreis.com` rather than `ffreis.com`) so Cost Explorer can split spend per surface.
 
 ## Versioning
 
