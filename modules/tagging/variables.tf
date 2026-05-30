@@ -107,13 +107,21 @@ variable "fixed_cost_tier" {
 }
 
 variable "domain" {
-  description = "Public-facing domain this resource serves. Cross-cuts Project (a shared stack may serve multiple domains)."
+  description = "Public-facing domain (or subdomain) this resource serves. Cross-cuts Project (a shared stack may serve multiple domains). Subdomains are first-class so Cost Explorer can split spend per surface (e.g. dashboard vs. main site)."
   type        = string
   default     = "internal"
 
   validation {
-    condition     = contains(["flemming.com.br", "ffreis.com", "petlook.ai", "internal"], var.domain)
-    error_message = "domain must be flemming.com.br, ffreis.com, petlook.ai, or internal."
+    condition = contains([
+      "flemming.com.br",
+      "ffreis.com",
+      "petlook.ai",
+      "petlook.app",
+      "dashboard.ffreis.com",
+      "uxstoryteller.ffreis.com",
+      "internal",
+    ], var.domain)
+    error_message = "domain must be one of: flemming.com.br, ffreis.com, petlook.ai, petlook.app, dashboard.ffreis.com, uxstoryteller.ffreis.com, internal."
   }
 }
 
