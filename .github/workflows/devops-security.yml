@@ -45,7 +45,7 @@ jobs:
     with:
       working-directory: "."
       scan-history: true
-      upload-sarif: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false }}
+      upload-sarif: false
 
   # TODO: update SHA to the ffreis-workflows-terraform commit that added SARIF support to tf-security.yml
   trivy-config:
@@ -55,7 +55,7 @@ jobs:
     uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-security.yml@b9644b0bafb7fd4eb3d74ccb8b8ee8818e111079
     with:
       scan-ref: "."
-      upload-sarif: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false }}
+      upload-sarif: false
 
   grype-fs:
     needs: changes
@@ -71,7 +71,7 @@ jobs:
     uses: FelipeFuhr/ffreis-workflows-general/.github/workflows/general-scan-grype-fs.yml@d9792d01b442d7f2d3d2c6855cb312d885594e0f # v1.2.1
     with:
       path: "."
-      upload-sarif: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false }}
+      upload-sarif: false
 
   osv:
     needs: changes
@@ -87,4 +87,4 @@ jobs:
     uses: FelipeFuhr/ffreis-workflows-general/.github/workflows/general-osv-scanner.yml@01e2b12e992621fecf074b8a202f66044196f3bf
     with:
       working-directory: "."
-      upload-sarif: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false }}
+      upload-sarif: false
