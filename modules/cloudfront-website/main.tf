@@ -2,9 +2,8 @@
 # Managed CloudFront cache policy IDs (stable AWS-managed values)
 # ---------------------------------------------------------------------------
 locals {
-  # AWS managed: CachingOptimized — used for static S3 content
-  cache_policy_optimized = "658327ea-f89d-4fab-a63d-7e88639e58f6"
-  # AWS managed: CachingDisabled — used for API proxy behaviours
+  # AWS managed: CachingDisabled — used for API proxy behaviours.
+  # (Static S3 content uses the caller-supplied var.cache_policy_id.)
   cache_policy_disabled = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
   # AWS managed: AllViewerExceptHostHeader — forward all request headers to
   # the origin except Host, which CloudFront replaces with the origin domain
