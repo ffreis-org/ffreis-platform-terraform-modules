@@ -21,33 +21,58 @@ variable "tags" {
 # ---------------------------------------------------------------------------
 
 variable "visibility_timeout_seconds" {
-  description = "SQS visibility timeout. Set >= consumer Lambda timeout WITH MARGIN (the existing 6x multiple) so a slow drain run does not make a message visible mid-processing and get double-picked by the next tick."
+  description = "SQS visibility timeout (0-43200). Set >= consumer Lambda timeout WITH MARGIN (the existing 6x multiple) so a slow drain run does not make a message visible mid-processing and get double-picked by the next tick."
   type        = number
   default     = 30
+
+  validation {
+    condition     = var.visibility_timeout_seconds >= 0 && var.visibility_timeout_seconds <= 43200
+    error_message = "visibility_timeout_seconds must be between 0 and 43200 (12 hours)."
+  }
 }
 
 variable "message_retention_seconds" {
-  description = "Primary queue message retention (default 4 days)."
+  description = "Primary queue message retention (60-1209600; default 4 days)."
   type        = number
   default     = 345600
+
+  validation {
+    condition     = var.message_retention_seconds >= 60 && var.message_retention_seconds <= 1209600
+    error_message = "message_retention_seconds must be between 60 and 1209600 (14 days)."
+  }
 }
 
 variable "max_message_size" {
   description = "Max SQS message size in bytes (1024-262144)."
   type        = number
   default     = 262144
+
+  validation {
+    condition     = var.max_message_size >= 1024 && var.max_message_size <= 262144
+    error_message = "max_message_size must be between 1024 and 262144 bytes."
+  }
 }
 
 variable "delay_seconds" {
   description = "SQS delivery delay (0-900)."
   type        = number
   default     = 0
+
+  validation {
+    condition     = var.delay_seconds >= 0 && var.delay_seconds <= 900
+    error_message = "delay_seconds must be between 0 and 900."
+  }
 }
 
 variable "receive_wait_time_seconds" {
   description = "Long-poll wait time (0-20). 20 reduces empty-receive cost during drains."
   type        = number
   default     = 20
+
+  validation {
+    condition     = var.receive_wait_time_seconds >= 0 && var.receive_wait_time_seconds <= 20
+    error_message = "receive_wait_time_seconds must be between 0 and 20."
+  }
 }
 
 variable "fifo" {
@@ -96,9 +121,14 @@ variable "max_receive_count" {
 }
 
 variable "dlq_retention_seconds" {
-  description = "DLQ retention (default 14 days, room to investigate)."
+  description = "DLQ retention (60-1209600; default 14 days, room to investigate)."
   type        = number
   default     = 1209600
+
+  validation {
+    condition     = var.dlq_retention_seconds >= 60 && var.dlq_retention_seconds <= 1209600
+    error_message = "dlq_retention_seconds must be between 60 and 1209600 (14 days)."
+  }
 }
 
 # ---------------------------------------------------------------------------
@@ -118,9 +148,14 @@ variable "input_topic_name" {
 }
 
 variable "external_input_topic_arn" {
-  description = "Subscribe the queue to a PRE-EXISTING topic (chaining: a previous unit's output_topic_arn) instead of creating one. Mutually exclusive with create_input_topic."
+  description = "Subscribe the queue to a PRE-EXISTING topic (chaining: a previous unit's output_topic_arn) instead of creating one. Mutually exclusive with create_input_topic (set create_input_topic = false when supplying this)."
   type        = string
   default     = null
+
+  validation {
+    condition     = var.external_input_topic_arn == null || var.create_input_topic == false
+    error_message = "external_input_topic_arn is mutually exclusive with create_input_topic = true; set create_input_topic = false when supplying an external topic ARN."
+  }
 }
 
 variable "input_filter_policy" {
@@ -133,6 +168,11 @@ variable "input_filter_policy_scope" {
   description = "MessageAttributes | MessageBody."
   type        = string
   default     = "MessageAttributes"
+
+  validation {
+    condition     = contains(["MessageAttributes", "MessageBody"], var.input_filter_policy_scope)
+    error_message = "input_filter_policy_scope must be \"MessageAttributes\" or \"MessageBody\"."
+  }
 }
 
 variable "raw_message_delivery" {
@@ -150,6 +190,11 @@ variable "additional_input_subscriptions" {
     filter_policy        = optional(string, null)
   }))
   default = {}
+
+  validation {
+    condition     = length(var.additional_input_subscriptions) == 0 || var.create_input_topic || var.external_input_topic_arn != null
+    error_message = "additional_input_subscriptions requires an input SNS topic (set create_input_topic = true or provide external_input_topic_arn)."
+  }
 }
 
 # ---------------------------------------------------------------------------
@@ -165,6 +210,11 @@ variable "consumer_mode" {
     condition     = contains(["real_time", "near_real_time", "batch", "external"], var.consumer_mode)
     error_message = "consumer_mode must be real_time, near_real_time, batch, or external."
   }
+
+  validation {
+    condition     = var.consumer_mode != "real_time" || var.create_input_topic || var.external_input_topic_arn != null
+    error_message = "consumer_mode = \"real_time\" requires an input SNS topic (set create_input_topic = true or provide external_input_topic_arn) for the SNS->Lambda subscription."
+  }
 }
 
 variable "consumer_lambda_arn" {
@@ -179,9 +229,14 @@ variable "consumer_lambda_arn" {
 }
 
 variable "consumer_lambda_name" {
-  description = "Consumer Lambda function name (for lambda permissions + on-failure config + EventBridge target)."
+  description = "Consumer Lambda function name (for lambda permissions + on-failure config + EventBridge target). Required for real_time/near_real_time/batch."
   type        = string
   default     = null
+
+  validation {
+    condition     = var.consumer_mode == "external" || var.consumer_lambda_name != null
+    error_message = "consumer_lambda_name is required unless consumer_mode = \"external\"."
+  }
 }
 
 # real_time specific
@@ -198,7 +253,7 @@ variable "real_time_subscription_enabled" {
 }
 
 variable "create_failure_queue" {
-  description = "real_time: create the SQS failure queue that the Lambda async on-failure destination targets."
+  description = "real_time: wire the work queue as the Lambda async on-failure destination + create its scheduled failure-drain. The work queue (module.queue) is always created; false only disables this on-failure wiring/drain."
   type        = bool
   default     = true
 }
@@ -265,9 +320,14 @@ variable "output_subscriptions" {
 # ---------------------------------------------------------------------------
 
 variable "create_archive" {
-  description = "Archive every event on the input topic to S3 via Kinesis Firehose (for full reprocessing replay). NEVER enable on flows carrying secrets/PII (e.g. auth passwords)."
+  description = "Archive every event on the input topic to S3 via Kinesis Firehose (for full reprocessing replay). NEVER enable on flows carrying secrets/PII (e.g. auth passwords). Requires an input SNS topic (the archive subscribes to it)."
   type        = bool
   default     = false
+
+  validation {
+    condition     = !var.create_archive || var.create_input_topic || var.external_input_topic_arn != null
+    error_message = "create_archive requires an input SNS topic (set create_input_topic = true or provide external_input_topic_arn)."
+  }
 }
 
 variable "archive_bucket_name" {
@@ -291,12 +351,22 @@ variable "archive_buffer_seconds" {
   description = "Firehose buffering interval hint (60-900). Lower = fresher archive, more S3 PUTs."
   type        = number
   default     = 300
+
+  validation {
+    condition     = var.archive_buffer_seconds >= 60 && var.archive_buffer_seconds <= 900
+    error_message = "archive_buffer_seconds must be between 60 and 900."
+  }
 }
 
 variable "archive_buffer_mb" {
   description = "Firehose buffering size hint in MB (1-128)."
   type        = number
   default     = 5
+
+  validation {
+    condition     = var.archive_buffer_mb >= 1 && var.archive_buffer_mb <= 128
+    error_message = "archive_buffer_mb must be between 1 and 128."
+  }
 }
 
 # ---------------------------------------------------------------------------
