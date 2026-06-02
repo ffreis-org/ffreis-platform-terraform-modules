@@ -16,6 +16,7 @@ locals {
 resource "aws_s3_bucket" "emails" {
   #checkov:skip=CKV_AWS_144:Cross-region replication requires a caller-managed destination bucket and replication IAM configuration.
   #checkov:skip=CKV2_AWS_62:This bucket stores inbound SES objects and does not require native event notifications because the SES receipt rule invokes Lambda directly.
+  #checkov:skip=CKV_AWS_21:Write-once inbound-email staging cache — Lambda reads each object once and a lifecycle rule expires it; versioning would only accrue storage cost with no recovery value.
   bucket = var.email_bucket_name
 
   tags = merge(var.tags, { Name = var.email_bucket_name })
