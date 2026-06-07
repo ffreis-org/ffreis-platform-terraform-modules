@@ -48,7 +48,6 @@ jobs:
       scan-history: true
       upload-sarif: false
 
-  # TODO: update SHA to the ffreis-workflows-terraform commit that added SARIF support to tf-security.yml
   trivy-config:
     permissions:
       contents: read
