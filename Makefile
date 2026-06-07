@@ -65,7 +65,7 @@ validate:
 ## lint: run tflint across all modules
 lint:
 	tflint --init
-	tflint --recursive --format compact .
+	tflint --recursive --format compact
 
 ## security: run trivy Terraform config scan
 security:
