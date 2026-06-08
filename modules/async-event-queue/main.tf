@@ -19,8 +19,9 @@ locals {
   output_topic_name = coalesce(var.output_topic_name, "${var.name}-completed")
   archive_prefix    = coalesce(var.archive_prefix, var.name)
 
-  is_real_time = var.consumer_mode == "real_time"
-  is_drain     = contains(["near_real_time", "batch"], var.consumer_mode)
+  is_real_time    = var.consumer_mode == "real_time"
+  is_drain        = contains(["near_real_time", "batch"], var.consumer_mode)
+  is_event_driven = var.consumer_mode == "event_driven"
 
   create_owned_input_topic = var.create_input_topic && var.external_input_topic_arn == null
   input_topic_arn          = var.external_input_topic_arn != null ? var.external_input_topic_arn : (local.create_owned_input_topic ? module.input_topic[0].arn : null)
@@ -221,6 +222,32 @@ resource "aws_lambda_permission" "failure_drain" {
 }
 
 # ---------------------------------------------------------------------------
+# Consumer trigger — event_driven: SQS Event Source Mapping (no scheduled drain)
+# Event-driven (~seconds) with the durable SQS buffer + maximum_concurrency
+# backpressure. An ESM CAN be created disabled, so it is always created here
+# and only `enabled` toggles — no "can't create disabled" workaround needed.
+# Consumer IAM (sqs:ReceiveMessage/DeleteMessage/GetQueueAttributes) comes from
+# the module's consumer_policy_json output; the ESM needs no aws_lambda_permission.
+# ---------------------------------------------------------------------------
+resource "aws_lambda_event_source_mapping" "consumer" {
+  count = local.is_event_driven ? 1 : 0
+
+  event_source_arn                   = module.queue.queue_arn
+  function_name                      = var.consumer_lambda_arn
+  enabled                            = var.esm_enabled
+  batch_size                         = var.batch_size
+  maximum_batching_window_in_seconds = var.maximum_batching_window_in_seconds
+  function_response_types            = var.esm_report_batch_item_failures ? ["ReportBatchItemFailures"] : []
+
+  dynamic "scaling_config" {
+    for_each = var.maximum_concurrency != null ? [1] : []
+    content {
+      maximum_concurrency = var.maximum_concurrency
+    }
+  }
+}
+
+# ---------------------------------------------------------------------------
 # Output topic (emit / chain) — NO output queue (D1)
 # ---------------------------------------------------------------------------
 module "output_topic" {
@@ -418,4 +445,47 @@ resource "aws_cloudwatch_metric_alarm" "dlq_depth" {
   comparison_operator = "GreaterThanThreshold"
   alarm_actions       = [var.alarm_sns_topic_arn]
   tags                = var.tags
+}
+
+# event_driven canary: messages are aging in the queue BUT the consumer is not
+# being invoked → the ESM is disabled or broken (the disabled-trigger footgun
+# that silently dropped fleet emails). Metric-math fires only when both hold.
+resource "aws_cloudwatch_metric_alarm" "esm_stalled" {
+  count = local.is_event_driven && var.create_alarms ? 1 : 0
+
+  alarm_name          = "${var.name}-esm-stalled"
+  alarm_description   = "Queue has aging messages but the consumer Lambda is not being invoked — ESM likely disabled or broken."
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  threshold           = 0
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [var.alarm_sns_topic_arn]
+  tags                = var.tags
+
+  metric_query {
+    id          = "stalled"
+    expression  = "IF(age > ${var.canary_age_threshold_seconds} AND invocations < 1, 1, 0)"
+    label       = "EnqueuedButNotConsumed"
+    return_data = true
+  }
+  metric_query {
+    id = "age"
+    metric {
+      namespace   = "AWS/SQS"
+      metric_name = "ApproximateAgeOfOldestMessage"
+      dimensions  = { QueueName = module.queue.queue_name }
+      stat        = "Maximum"
+      period      = 300
+    }
+  }
+  metric_query {
+    id = "invocations"
+    metric {
+      namespace   = "AWS/Lambda"
+      metric_name = "Invocations"
+      dimensions  = { FunctionName = var.consumer_lambda_name }
+      stat        = "Sum"
+      period      = 300
+    }
+  }
 }

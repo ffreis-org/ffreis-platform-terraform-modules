@@ -202,18 +202,23 @@ variable "additional_input_subscriptions" {
 # ---------------------------------------------------------------------------
 
 variable "consumer_mode" {
-  description = "real_time (SNS->Lambda push) | near_real_time (drain) | batch (drain, cron) | external (caller manages the trigger)."
+  description = "event_driven (SNS->SQS->Lambda via ESM; the fleet default for buffered/rate-limited work) | real_time (SNS->Lambda push) | near_real_time (drain) | batch (drain, cron) | external (caller manages the trigger)."
   type        = string
   default     = "near_real_time"
 
   validation {
-    condition     = contains(["real_time", "near_real_time", "batch", "external"], var.consumer_mode)
-    error_message = "consumer_mode must be real_time, near_real_time, batch, or external."
+    condition     = contains(["event_driven", "real_time", "near_real_time", "batch", "external"], var.consumer_mode)
+    error_message = "consumer_mode must be event_driven, real_time, near_real_time, batch, or external."
   }
 
   validation {
     condition     = var.consumer_mode != "real_time" || var.create_input_topic || var.external_input_topic_arn != null
     error_message = "consumer_mode = \"real_time\" requires an input SNS topic (set create_input_topic = true or provide external_input_topic_arn) for the SNS->Lambda subscription."
+  }
+
+  validation {
+    condition     = var.consumer_mode != "event_driven" || var.create_input_topic || var.external_input_topic_arn != null
+    error_message = "consumer_mode = \"event_driven\" requires an input SNS topic (producer -> SNS -> SQS -> ESM). Set create_input_topic = true or provide external_input_topic_arn."
   }
 }
 
@@ -268,6 +273,58 @@ variable "failure_drain_enabled" {
   description = "Enable the failure-drain EventBridge rule (so real_time failures are not silently lost). Kept false until the handler ships; flip true at go-live."
   type        = bool
   default     = false
+}
+
+# event_driven specific (SNS -> SQS -> Lambda via Event Source Mapping)
+variable "esm_enabled" {
+  description = "event_driven: enable the SQS Event Source Mapping. UNLIKE an SNS->Lambda subscription, an ESM CAN be created disabled, so the resource is always created in event_driven mode and only its `enabled` toggles. Kept false at adoption; flip true at go-live (the esm_stalled canary alarm guards against forgetting)."
+  type        = bool
+  default     = false
+}
+
+variable "maximum_concurrency" {
+  description = "event_driven: scaling_config.maximum_concurrency on the ESM (2-1000). Caps concurrent consumer invocations — the backpressure knob for rate-limited downstreams (Bedrock/Rekognition). null = omit scaling_config (uncapped)."
+  type        = number
+  default     = null
+
+  validation {
+    condition     = var.maximum_concurrency == null || (var.maximum_concurrency >= 2 && var.maximum_concurrency <= 1000)
+    error_message = "maximum_concurrency must be between 2 and 1000 (the SQS ESM floor is 2)."
+  }
+}
+
+variable "batch_size" {
+  description = "event_driven: ESM batch_size (1-10000). Default 1 for clean per-message logs (fleet per-item-loop convention)."
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.batch_size >= 1 && var.batch_size <= 10000
+    error_message = "batch_size must be between 1 and 10000."
+  }
+}
+
+variable "maximum_batching_window_in_seconds" {
+  description = "event_driven: ESM batching window (0-300). 0 = no wait (lowest latency)."
+  type        = number
+  default     = 0
+
+  validation {
+    condition     = var.maximum_batching_window_in_seconds >= 0 && var.maximum_batching_window_in_seconds <= 300
+    error_message = "maximum_batching_window_in_seconds must be between 0 and 300."
+  }
+}
+
+variable "esm_report_batch_item_failures" {
+  description = "event_driven: add ReportBatchItemFailures to the ESM function_response_types. REQUIRES the consumer to return a partial-batch-failure response (batchItemFailures); otherwise a failed message is acked and never reaches the DLQ. Default true (DLQ-safe)."
+  type        = bool
+  default     = true
+}
+
+variable "canary_age_threshold_seconds" {
+  description = "event_driven: the esm_stalled canary fires when the oldest message is older than this AND consumer invocations are zero (the 'trigger disabled / broken' guardrail). Lower = faster page, more false positives at adoption."
+  type        = number
+  default     = 120
 }
 
 # near_real_time / batch (drain)
