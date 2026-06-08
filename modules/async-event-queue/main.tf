@@ -180,6 +180,16 @@ resource "aws_sns_topic_subscription" "topic_to_lambda" {
   protocol      = "lambda"
   endpoint      = var.consumer_lambda_arn
   filter_policy = var.real_time_input_filter_policy
+
+  # Subscription DLQ: messages SNS cannot DELIVER to the Lambda (throttled /
+  # unavailable beyond SNS's retry policy) land in the work queue, instead of
+  # being silently dropped. The work queue is the failure capture in real_time;
+  # the Lambda on-failure destination (create_failure_queue) handles EXECUTION
+  # failures. Together they give the push pattern full failure coverage with no
+  # scheduled rule (set create_failure_drain = false).
+  redrive_policy = var.real_time_subscription_dlq ? jsonencode({
+    deadLetterTargetArn = module.queue.queue_arn
+  }) : null
 }
 
 resource "aws_lambda_permission" "sns_invoke" {
@@ -194,7 +204,7 @@ resource "aws_lambda_permission" "sns_invoke" {
 
 # Failure-drain — replays the failure queue on a low-frequency schedule.
 resource "aws_cloudwatch_event_rule" "failure_drain" {
-  count = local.is_real_time && var.create_failure_queue ? 1 : 0
+  count = local.is_real_time && var.create_failure_queue && var.create_failure_drain ? 1 : 0
 
   name                = "${var.name}-failure-drain"
   description         = "Replays the ${local.queue_name} failure queue."
@@ -204,7 +214,7 @@ resource "aws_cloudwatch_event_rule" "failure_drain" {
 }
 
 resource "aws_cloudwatch_event_target" "failure_drain" {
-  count = local.is_real_time && var.create_failure_queue ? 1 : 0
+  count = local.is_real_time && var.create_failure_queue && var.create_failure_drain ? 1 : 0
 
   rule      = aws_cloudwatch_event_rule.failure_drain[0].name
   target_id = "${var.name}-failure-drain-lambda"
@@ -212,7 +222,7 @@ resource "aws_cloudwatch_event_target" "failure_drain" {
 }
 
 resource "aws_lambda_permission" "failure_drain" {
-  count = local.is_real_time && var.create_failure_queue ? 1 : 0
+  count = local.is_real_time && var.create_failure_queue && var.create_failure_drain ? 1 : 0
 
   statement_id  = "AllowFailureDrainSchedule"
   action        = "lambda:InvokeFunction"

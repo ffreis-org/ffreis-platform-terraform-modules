@@ -275,6 +275,18 @@ variable "failure_drain_enabled" {
   default     = false
 }
 
+variable "create_failure_drain" {
+  description = "real_time: create the scheduled failure-drain EventBridge rule at all. Set false for the subscription-DLQ pattern (no scheduled rule) — failures still land in the work queue (subscription DLQ + on-failure) and are alarmed + manually/automatically re-driven. Decoupled from create_failure_queue so on-failure capture can exist without a scheduled replay."
+  type        = bool
+  default     = true
+}
+
+variable "real_time_subscription_dlq" {
+  description = "real_time: attach a redrive_policy to the SNS->Lambda subscription so messages SNS cannot DELIVER (Lambda throttled/unavailable) land in the work queue instead of being dropped. Pair with create_failure_drain = false for the truly-no-scheduled-rule push pattern."
+  type        = bool
+  default     = false
+}
+
 # event_driven specific (SNS -> SQS -> Lambda via Event Source Mapping)
 variable "esm_enabled" {
   description = "event_driven: enable the SQS Event Source Mapping. UNLIKE an SNS->Lambda subscription, an ESM CAN be created disabled, so the resource is always created in event_driven mode and only its `enabled` toggles. Kept false at adoption; flip true at go-live (the esm_stalled canary alarm guards against forgetting)."
