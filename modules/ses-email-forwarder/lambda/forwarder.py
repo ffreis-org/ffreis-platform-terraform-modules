@@ -31,6 +31,10 @@ EMAIL_KEY_PREFIX: str = os.environ.get("EMAIL_KEY_PREFIX", "emails")
 
 s3 = boto3.client("s3")
 ses = boto3.client("ses")
+sts = boto3.client("sts")
+
+# Resolved once at cold start to avoid per-invocation STS latency.
+_AWS_ACCOUNT_ID: str = sts.get_caller_identity()["Account"]
 
 # Headers that must be removed before re-sending to avoid delivery failures.
 _STRIP_HEADERS = [
@@ -81,11 +85,15 @@ def handler(event, context):
         logger.info("Processing message %s for %s", message_id, recipients)
 
         key = f"{EMAIL_KEY_PREFIX}/{message_id}"
-        raw = s3.get_object(Bucket=EMAIL_BUCKET, Key=key)["Body"].read()
+        raw = s3.get_object(
+            Bucket=EMAIL_BUCKET,
+            Key=key,
+            ExpectedBucketOwner=_AWS_ACCOUNT_ID,
+        )["Body"].read()
 
         for recipient in recipients:
             try:
                 _forward(raw, recipient)
-            except Exception as exc:
-                logger.error("Failed to forward %s to %s: %s", message_id, recipient, exc)
+            except Exception:
+                logger.exception("Failed to forward %s to %s", message_id, recipient)
                 raise
