@@ -5,9 +5,10 @@ Lambda Event Source Mappings (which poll SQS ~130K req/month per queue at idle a
 have no tunable interval) with a tunable, no-ESM trigger.
 
 ```
-producer ─► [input SNS topic] ─┬─ near_real_time/batch ─► [SQS + DLQ] ─drain─► Lambda
-                               ├─ real_time ───────────► Lambda ; on-failure ─► [SQS + DLQ]
-                               └─ (optional) ──────────► Firehose ─► [S3 archive]   (replay)
+producer ─► [input SNS topic] ─┬─ event_driven ─────────► [SQS + DLQ] ─ESM──► Lambda   (recommended)
+                               ├─ real_time ───────────► Lambda ; on-failure ─► [SQS + DLQ]  (push)
+                               ├─ near_real_time/batch ─► [SQS + DLQ] ─drain─► Lambda   (fallback; discouraged)
+                               └─ (optional) ──────────► Firehose ─► [S3 archive]   (replay → ux-storyteller)
    Lambda ─sns:Publish(result)─► [output topic]   (= the NEXT unit's input; there is NO output queue)
 ```
 
@@ -17,17 +18,52 @@ it, so there is no producer-side output queue.
 
 ## consumer_mode
 
-| mode | trigger | SQS role | latency | idle cost |
-|---|---|---|---|---|
-| `real_time` | SNS → Lambda subscription (push) | failure-only queue (empty in normal op) | < 1 s | ~0 |
-| `near_real_time` | EventBridge scheduled drain | primary buffer | = drain interval | drain-rate dependent |
-| `batch` | EventBridge drain (cron) | primary buffer | 5 min–hours | very low |
-| `external` | caller wires the trigger | primary buffer | — | — |
+| mode | trigger | SQS role | latency | idle cost | use for |
+|---|---|---|---|---|---|
+| `event_driven` | SQS Event Source Mapping | primary buffer | ~seconds | ~$0.05/queue/mo (poll) | **rate-limited/expensive or bursty** downstream (Bedrock, Rekognition) — buffer + `maximum_concurrency` backpressure |
+| `real_time` | SNS → Lambda subscription (push) | failure-only queue (empty in normal op) | < 1 s | ~0 | **low-volume, not-rate-limited** (SES, DDB writes) — forms, auth, notifications |
+| `near_real_time` | EventBridge scheduled drain | primary buffer | = drain interval | drain-rate dependent | *fallback only — discouraged* (the disabled-drain footgun dropped fleet emails) |
+| `batch` | EventBridge drain (cron) | primary buffer | 5 min–hours | very low | *fallback only* |
+| `external` | caller wires the trigger | primary buffer | — | — | caller owns the trigger |
 
-Drain cost is **tunable, not zero**: each scheduled invocation does one long-poll
-`ReceiveMessage` even when empty (≈ `rate` × invocations/month). `rate(1m)` ≈ 43K/mo
-(~3× cheaper than ESM); `rate(5m)` ≈ 8.6K; `rate(15m)` ≈ 2.9K. If a flow needs sub-minute
-latency, use `real_time` (push), not `near_real_time` at `rate(1m)`.
+`event_driven` and `real_time` are the two recommended last hops; both sit behind the same
+SNS bus + archive. The scheduled-drain modes (`near_real_time`/`batch`) are kept as a
+documented **fallback and are not used by any website** — a scheduled drain left
+`state = DISABLED` at go-live silently dropped admin emails across two sites (the
+`esm_stalled` canary on `event_driven` exists to catch exactly that class of failure).
+
+## Choosing a pattern (new forms / interactions)
+
+Every async flow is **two independent choices**. Both sit behind the same SNS bus, so
+observability and the envelope are identical regardless.
+
+**Axis 1 — last hop (how the consumer is triggered):**
+
+| Pick | When |
+|---|---|
+| **`event_driven`** (SNS→SQS→ESM) | the downstream is rate-limited or expensive (Bedrock, Rekognition, a throttled API) or traffic is bursty — you want the SQS buffer + `maximum_concurrency` backpressure. *The fleet default for pipeline work.* |
+| **`real_time`** (SNS→Lambda push) | low/moderate volume, the downstream is not rate-limited (SES, a DDB write), and you want sub-second + zero idle cost — forms, auth, notifications. Set `real_time_subscription_dlq = true` + `create_failure_drain = false`. |
+
+Never use `near_real_time`/`batch` for a website flow — they exist only as a documented fallback.
+
+**Axis 2 — delivery (what the user sees):**
+
+| Pick | When |
+|---|---|
+| **await-result** *(default)* | the user needs the outcome — show success only once the work is *processed* (email sent / request done), not when it was enqueued. Wire the **`async-job-status`** module: submit returns `202 {job_id}` (= the envelope `correlation_id`), the consumer's last step writes the terminal status, the browser polls `GET /api/status/{job_id}` via the tracker SDK's `submitAndAwait`. This is the honest-success contract — it's what makes "success" mean the work happened. |
+| **ack-only** | genuinely best-effort side effects (analytics, a non-critical notification) — submit returns `202 {accepted}`, no job tracking. |
+
+**Always, regardless of the two axes:**
+
+1. **Publish a `DomainEvent`** (ffreis-rust-shared `v0.7.0` `shared::event` / ffreis-python-shared
+   `v0.2.0`) to the input topic — one schema across producers, consumers, the status writer,
+   and observability. Its `correlation_id` *is* the `job_id` and the ux `session_id`.
+2. **`create_archive = true`** (except PII/auth) so every event lands in S3 — that archive is
+   the **ux-storyteller** tap and the replay source. Observability reads the bus/archive
+   (upstream of the push-vs-ESM split), so it's agnostic to the last hop.
+3. **`create_alarms = true`** — non-negotiable. `event_driven` gets the `esm_stalled` canary;
+   `real_time` gets the subscription-DLQ + SNS-delivery alarms. A go-live flag left off must
+   *page*, never silently drop.
 
 ## Caller responsibilities (the module cannot enforce these)
 
@@ -42,9 +78,11 @@ latency, use `real_time` (push), not `near_real_time` at `rate(1m)`.
    (the drain handler reads it). For `real_time` this is the failure queue.
 4. **IAM.** Attach the module's `*_policy_json` outputs to the relevant Lambda
    `inline_policies` (the module never creates IAM role attachments).
-5. **`real_time` go-live.** Keep `real_time_subscription_enabled = false` and
-   `failure_drain_enabled = false` until the handler ships; flip both at cutover (an SNS
-   subscription cannot be created disabled, so creating it early would invoke an
+5. **Go-live flags.** `event_driven`: keep `esm_enabled = false` until the handler ships, flip
+   true at cutover (the ESM *can* be created disabled, so it's always present and the
+   `esm_stalled` canary guards a forgotten flip). `real_time`: keep
+   `real_time_subscription_enabled = false` and `failure_drain_enabled = false` until cutover
+   (an SNS subscription cannot be created disabled, so creating it early would invoke an
    un-updated handler).
 6. **Visibility timeout.** Set `visibility_timeout_seconds` ≥ the consumer Lambda timeout
    with margin (the existing 6× multiple is a good default).
