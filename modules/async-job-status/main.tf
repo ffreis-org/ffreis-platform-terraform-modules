@@ -1,7 +1,8 @@
 ###############################################################################
 # async-job-status — the honest-success correlation store.
 #
-# A jobs DynamoDB table keyed by `job_id` (== DomainEvent.correlation_id). The
+# A jobs DynamoDB table keyed by `job_id` (== DomainEvent.event_id, unique per
+# submission; correlation_id = the ux session_id). The
 # async consumer's LAST step writes a terminal status row (conditional PutItem —
 # the idempotency record); a caller-owned SYNC "status" Lambda reads it to serve
 # GET /api/status/{job_id}, which the browser polls until terminal.
