@@ -5,12 +5,13 @@ pattern. Backs "show the user success only once the work is *processed*".
 
 ```
 browser ─POST─► submit Lambda ─publish DomainEvent─► (push|ESM) consumer ─work─► PutItem terminal status
-   │              └─202 {job_id}=correlation_id                                    to THIS table (TTL ~1h)
+   │              └─202 {job_id}=event_id (correlation_id=session_id)               to THIS table (TTL ~1h)
    └─GET /api/status/{job_id}─► status Lambda (SYNC) ─GetItem─► pending|succeeded|failed
 ```
 
 This module owns only the **jobs DynamoDB table** (keyed by `job_id` ==
-`DomainEvent.correlation_id`) and the **IAM policy-JSON outputs**. The caller
+`DomainEvent.event_id`; `correlation_id` = the ux session_id) and the
+**IAM policy-JSON outputs**. The caller
 attaches `status_writer_policy_json` to the async **consumer** role (its last
 step writes the terminal status — a conditional `PutItem` that doubles as the
 idempotency record) and `status_reader_policy_json` to a caller-owned **sync
