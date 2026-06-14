@@ -179,3 +179,42 @@ jobs:
 
       - name: Run Terratest suite
         run: make test-ci
+
+  # ── 9. Python Lambda lint + test ─────────────────────────────────────────────
+  # Modules that ship a Python Lambda (modules/*/lambda/) are otherwise covered
+  # only by Terraform validation — this lints and unit-tests the handler code.
+  python-lambdas:
+    timeout-minutes: 15
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+    name: Python Lambda lint + test
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.12"
+
+      - name: Install tools
+        run: pip install --quiet "ruff==0.15.12" pytest boto3
+
+      - name: Lint + test each module Lambda
+        run: |
+          set -euo pipefail
+          mapfile -t dirs < <(find modules -type d -name lambda | sort)
+          if [ "${#dirs[@]}" -eq 0 ]; then echo "no python lambda dirs"; exit 0; fi
+          for d in "${dirs[@]}"; do
+            echo "::group::${d}"
+            ruff check "${d}"
+            if ls "${d}"/test_*.py >/dev/null 2>&1; then
+              (cd "${d}" && python -m pytest -q)
+            else
+              echo "WARNING: ${d} has no unit tests"
+            fi
+            echo "::endgroup::"
+          done
