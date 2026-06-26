@@ -78,3 +78,9 @@ variable "dev_access_path" {
   type        = string
   default     = "/dev-access"
 }
+
+variable "www_redirect_host" {
+  description = "When non-empty, any request whose Host header starts with 'www.' is 301-redirected to 'https://<value><uri>'. Set to the bare apex domain (e.g. 'ffreis.com'). Leave empty to disable."
+  type        = string
+  default     = ""
+}
