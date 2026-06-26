@@ -5,44 +5,25 @@
 //
 // Responsibilities (applied in order):
 //
-// 1. Health check  — /healthz returns 200 OK unconditionally (optional).
-// 2. IP allowlist  — 403 for unlisted IPs, dev envs only (optional).
-// 3. Passthrough   — configured paths bypass all routing and rewriting.
+// 1. Health check   — /healthz returns 200 OK unconditionally (optional).
+// 2. Cookie gate    — visit /<dev_access_path>?token=<secret> once to get a
+//                     30-day HttpOnly cookie; all other requests must present
+//                     that cookie. Enabled when dev_access_secret is set.
+// 3. Passthrough    — configured paths bypass all routing and rewriting.
 // 4. Language routing — requests not on a language prefix are 302-redirected
 //    to /<lang><uri> using cookie → country → default priority.
 // 5. Clean-URL rewriting — .html paths get a 301 canonical redirect;
 //    extensionless paths are rewritten to /path/index.html for the S3 fetch.
 
-%{ if ip_allowlist_enabled ~}
-var ALLOWED_V4 = ${allowed_v4_ips_json};
-var ALLOWED_V6_HEX_PREFIXES = ${allowed_v6_hex_prefixes_json};
+%{ if dev_gate_enabled ~}
+var DEV_SECRET = "${dev_access_secret}";
+var DEV_PATH = "${dev_access_path}";
+var DEV_COOKIE = "dev_access";
+var DEV_TTL = 2592000;
 
-function isAllowedIp(ip) {
-  if (!ip) return false;
-  if (ip.indexOf(':') === -1) {
-    for (var i = 0; i < ALLOWED_V4.length; i++) {
-      if (ALLOWED_V4[i] === ip) return true;
-    }
-    return false;
-  }
-  var hex = normalizeIpv6(ip);
-  for (var j = 0; j < ALLOWED_V6_HEX_PREFIXES.length; j++) {
-    if (hex.indexOf(ALLOWED_V6_HEX_PREFIXES[j]) === 0) return true;
-  }
-  return false;
-}
-
-function normalizeIpv6(ip) {
-  var halves = ip.toLowerCase().split('::');
-  var left = halves[0] ? halves[0].split(':') : [];
-  var right = halves.length > 1 && halves[1] ? halves[1].split(':') : [];
-  var missing = 8 - left.length - right.length;
-  var groups = left;
-  for (var i = 0; i < missing; i++) groups.push('0');
-  groups = groups.concat(right);
-  var hex = '';
-  for (var j = 0; j < 8; j++) hex += ('0000' + (groups[j] || '0')).slice(-4);
-  return hex;
+function devAllowed(request) {
+  var c = (request.cookies || {})[DEV_COOKIE];
+  return c && c.value === DEV_SECRET;
 }
 
 %{ endif ~}
@@ -62,13 +43,31 @@ function handler(event) {
   }
 
 %{ endif ~}
-%{ if ip_allowlist_enabled ~}
-  if (!isAllowedIp(event.viewer.ip)) {
-    return { statusCode: 403, statusDescription: 'Forbidden', headers: {} };
-  }
-%{ endif ~}
+%{ if dev_gate_enabled ~}
   var request = event.request;
   var uri = request.uri;
+  if (uri === DEV_PATH) {
+    var qs = request.querystring || {};
+    var tok = qs['token'];
+    if (tok && tok.value === DEV_SECRET) {
+      return {
+        statusCode: 302,
+        statusDescription: 'Found',
+        headers: {
+          location: { value: '/' },
+          'set-cookie': { value: DEV_COOKIE + '=' + DEV_SECRET + '; Path=/; Max-Age=' + DEV_TTL + '; HttpOnly; Secure; SameSite=Strict' }
+        }
+      };
+    }
+    return { statusCode: 403, statusDescription: 'Forbidden', headers: {} };
+  }
+  if (!devAllowed(request)) {
+    return { statusCode: 403, statusDescription: 'Forbidden', headers: {} };
+  }
+%{ else ~}
+  var request = event.request;
+  var uri = request.uri;
+%{ endif ~}
   var method = request.method;
 
   if (method !== 'GET' && method !== 'HEAD') return request;

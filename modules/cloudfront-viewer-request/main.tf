@@ -15,6 +15,9 @@ resource "aws_cloudfront_function" "viewer_request" {
     ip_allowlist_enabled         = var.ip_allowlist_enabled
     allowed_v4_ips_json          = var.allowed_v4_ips_json
     allowed_v6_hex_prefixes_json = var.allowed_v6_hex_prefixes_json
+    dev_gate_enabled             = var.dev_access_secret != ""
+    dev_access_secret            = var.dev_access_secret
+    dev_access_path              = var.dev_access_path
     lang_prefixes_json           = jsonencode(var.lang_prefixes)
     default_lang                 = var.default_lang
     country_to_lang_json         = jsonencode(var.country_to_lang)
