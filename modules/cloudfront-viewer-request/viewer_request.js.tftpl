@@ -53,9 +53,12 @@ function handler(event) {
       return {
         statusCode: 302,
         statusDescription: 'Found',
-        headers: {
-          location: { value: '/' },
-          'set-cookie': { value: DEV_COOKIE + '=' + DEV_SECRET + '; Path=/; Max-Age=' + DEV_TTL + '; HttpOnly; Secure; SameSite=Strict' }
+        headers: { location: { value: '/' } },
+        cookies: {
+          dev_access: {
+            value: DEV_SECRET,
+            attributes: 'Path=/; Max-Age=' + DEV_TTL + '; HttpOnly; Secure; SameSite=Strict'
+          }
         }
       };
     }
