@@ -26,5 +26,7 @@ resource "aws_cloudfront_function" "viewer_request" {
     cookie_to_prefix_enabled     = length(var.cookie_to_prefix) > 0
     cookie_to_prefix_json        = jsonencode(var.cookie_to_prefix)
     healthz_enabled              = var.healthz_enabled
+    www_redirect_enabled         = var.www_redirect_host != ""
+    www_redirect_host            = var.www_redirect_host
   })
 }
