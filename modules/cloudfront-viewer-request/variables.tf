@@ -65,3 +65,16 @@ variable "allowed_v6_hex_prefixes_json" {
   type        = string
   default     = "[]"
 }
+
+variable "dev_access_secret" {
+  description = "When non-empty, enables a cookie-based dev gate. Visit /<dev_access_path>?token=<value> once to receive a 30-day HttpOnly cookie granting access. Replaces the IP allowlist gate in dev environments."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "dev_access_path" {
+  description = "URI path that accepts the token query parameter and sets the dev-access cookie. Defaults to /dev-access."
+  type        = string
+  default     = "/dev-access"
+}
