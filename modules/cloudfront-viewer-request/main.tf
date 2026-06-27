@@ -18,6 +18,7 @@ resource "aws_cloudfront_function" "viewer_request" {
     dev_gate_enabled             = var.dev_access_secret != ""
     dev_access_secret            = var.dev_access_secret
     dev_access_path              = var.dev_access_path
+    dev_cookie_domain_attr       = var.dev_access_cookie_domain != "" ? "; Domain=${var.dev_access_cookie_domain}" : ""
     lang_prefixes_json           = jsonencode(var.lang_prefixes)
     default_lang                 = var.default_lang
     country_to_lang_json         = jsonencode(var.country_to_lang)
