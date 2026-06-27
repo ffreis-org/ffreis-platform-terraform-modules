@@ -59,7 +59,7 @@ function handler(event) {
         cookies: {
           dev_access: {
             value: DEV_SECRET,
-            attributes: 'Path=/; Max-Age=' + DEV_TTL + '; HttpOnly; Secure; SameSite=Strict'
+            attributes: 'Path=/; Max-Age=' + DEV_TTL + '; HttpOnly; Secure; SameSite=Strict${dev_cookie_domain_attr}'
           }
         }
       };
