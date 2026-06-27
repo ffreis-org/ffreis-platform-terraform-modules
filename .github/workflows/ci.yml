@@ -43,7 +43,7 @@ jobs:
   fmt:
     permissions:
       contents: read
-    uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-fmt.yml@1b59a920b1b4b226f3e5a91eb9042827b9c435cb
+    uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-fmt.yml@5606584d4d99f3f0886517c4e637aa0b19308898 # v1.1.3
     with:
       working-directory: "."
 
@@ -52,7 +52,7 @@ jobs:
     needs: [fmt]
     permissions:
       contents: read
-    uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-validate.yml@1b59a920b1b4b226f3e5a91eb9042827b9c435cb
+    uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-validate.yml@5606584d4d99f3f0886517c4e637aa0b19308898 # v1.1.3
     with:
       validate-all-modules: true
       modules-dir: "modules"
@@ -62,7 +62,7 @@ jobs:
     needs: [fmt]
     permissions:
       contents: read
-    uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-lint.yml@1b59a920b1b4b226f3e5a91eb9042827b9c435cb
+    uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-lint.yml@5606584d4d99f3f0886517c4e637aa0b19308898 # v1.1.3
 
   # ── 5. Security (Trivy FINAL FIX - stable) ──────────────────────────────────
   security:
@@ -136,7 +136,7 @@ jobs:
       contents: read
       actions: read
       security-events: write
-    uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-tfsec.yml@1b59a920b1b4b226f3e5a91eb9042827b9c435cb
+    uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-tfsec.yml@5606584d4d99f3f0886517c4e637aa0b19308898 # v1.1.3
 
   # ── 7. Test module hygiene ──────────────────────────────────────────────────
   test-tidy:
@@ -144,7 +144,7 @@ jobs:
     needs: [fmt]
     permissions:
       contents: read
-    uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-test-tidy.yml@1b59a920b1b4b226f3e5a91eb9042827b9c435cb
+    uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-test-tidy.yml@5606584d4d99f3f0886517c4e637aa0b19308898 # v1.1.3
     with:
       go-version: "1.26"
 

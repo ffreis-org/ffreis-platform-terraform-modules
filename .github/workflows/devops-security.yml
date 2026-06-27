@@ -52,7 +52,7 @@ jobs:
     permissions:
       contents: read
       security-events: write
-    uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-security.yml@b9644b0bafb7fd4eb3d74ccb8b8ee8818e111079
+    uses: FelipeFuhr/ffreis-workflows-terraform/.github/workflows/tf-security.yml@5606584d4d99f3f0886517c4e637aa0b19308898 # v1.1.3
     with:
       scan-ref: "."
       upload-sarif: false
