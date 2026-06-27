@@ -24,7 +24,7 @@ the entire fleet; site-specific config is injected via `templatefile()`.
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | 6.52.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 5.0 |
 
 ## Modules
 
@@ -45,6 +45,7 @@ No modules.
 | <a name="input_cookie_to_prefix"></a> [cookie\_to\_prefix](#input\_cookie\_to\_prefix) | Optional map of preferred\_lang cookie values to URL language prefixes. Use when cookie values differ from URL prefixes (e.g. cookie='ja' → URL prefix='jp'). When empty, the cookie value is matched directly against lang\_prefixes. | `map(string)` | `{}` | no |
 | <a name="input_country_to_lang"></a> [country\_to\_lang](#input\_country\_to\_lang) | Map of ISO 3166-1 alpha-2 country codes to language prefixes. | `map(string)` | `{}` | no |
 | <a name="input_default_lang"></a> [default\_lang](#input\_default\_lang) | Language prefix used when neither cookie nor country header produces a match. | `string` | n/a | yes |
+| <a name="input_dev_access_cookie_domain"></a> [dev\_access\_cookie\_domain](#input\_dev\_access\_cookie\_domain) | When non-empty, sets the Domain attribute on the dev-access cookie (e.g. '.ffreis.com' to share the cookie across all subdomains). Leave empty to scope the cookie to the exact request host. | `string` | `""` | no |
 | <a name="input_dev_access_path"></a> [dev\_access\_path](#input\_dev\_access\_path) | URI path that accepts the token query parameter and sets the dev-access cookie. Defaults to /dev-access. | `string` | `"/dev-access"` | no |
 | <a name="input_dev_access_secret"></a> [dev\_access\_secret](#input\_dev\_access\_secret) | When non-empty, enables a cookie-based dev gate. Visit /<dev\_access\_path>?token=<value> once to receive a 30-day HttpOnly cookie granting access. Replaces the IP allowlist gate in dev environments. | `string` | `""` | no |
 | <a name="input_environment"></a> [environment](#input\_environment) | Deployment environment (e.g. 'dev' or 'prod'). | `string` | n/a | yes |
