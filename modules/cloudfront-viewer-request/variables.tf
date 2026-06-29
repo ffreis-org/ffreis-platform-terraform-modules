@@ -18,6 +18,12 @@ variable "default_lang" {
   type        = string
 }
 
+variable "canonicalize_html" {
+  description = "When true (default), .html URLs 301-redirect to their extensionless canonical and extensionless paths rewrite to /index.html (pretty URLs — for directory-structured sites). Set false for flat sites that serve <name>.html files directly (the .html 301 is skipped); extensionless and trailing-slash rewriting still apply so directory roots resolve to /index.html."
+  type        = bool
+  default     = true
+}
+
 variable "country_to_lang" {
   description = "Map of ISO 3166-1 alpha-2 country codes to language prefixes."
   type        = map(string)
