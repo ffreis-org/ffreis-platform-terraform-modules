@@ -119,9 +119,10 @@ variable "domain" {
       "petlook.app",
       "dashboard.ffreis.com",
       "uxstoryteller.ffreis.com",
+      "pocketworldarcade.ffreis.com",
       "internal",
     ], var.domain)
-    error_message = "domain must be one of: flemming.com.br, ffreis.com, petlook.ai, petlook.app, dashboard.ffreis.com, uxstoryteller.ffreis.com, internal."
+    error_message = "domain must be one of: flemming.com.br, ffreis.com, petlook.ai, petlook.app, dashboard.ffreis.com, uxstoryteller.ffreis.com, pocketworldarcade.ffreis.com, internal."
   }
 }
 
