@@ -25,7 +25,14 @@ locals {
 
   create_owned_input_topic = var.create_input_topic && var.external_input_topic_arn == null
   input_topic_arn          = var.external_input_topic_arn != null ? var.external_input_topic_arn : (local.create_owned_input_topic ? module.input_topic[0].arn : null)
-  has_input_topic          = local.input_topic_arn != null
+  # Derive from config booleans, NOT input_topic_arn: when the module creates
+  # its own topic, input_topic_arn resolves to module.input_topic[0].arn — an
+  # unknown-at-plan value whose null-ness the ternary type-unification drops, so
+  # `input_topic_arn != null` becomes unknown and any `count` gated on it
+  # (input_to_queue, queue_allow_sns) fails "cannot be determined until apply"
+  # on a first apply. create_input_topic / external_input_topic_arn are both
+  # config-known, so has_input_topic stays known.
+  has_input_topic = var.create_input_topic || var.external_input_topic_arn != null
 
   # The work queue is fed by SNS only for drain/external modes. In real_time it
   # is the Lambda on-failure destination (fed by the Lambda service), not by SNS.
